@@ -14,7 +14,7 @@ xlsx_daily_q5_factors = 'daily_q5_factors.csv';
 daily_q5_factors = readtable(xlsx_daily_q5_factors);
 
 %set up the number of observations to test different time frames 
-n = 50;
+n = 1000;
 dates = daily_data.Caldt(1:n);
 r = daily_data.Dret(1:n);
 
@@ -27,11 +27,13 @@ F = [Fama5, Q5];
 T = length(r);  % Number of time periods
 m = size(F, 2);  % Number of factors
 
-%% setting up the optimization problem 
+%% correlation matrix to check if some factors have an alarming correlation 
 
-% Calculate intermediate terms
-%r_norm_sq = norm(r)^2;  % ||r||^2
-%r_mean_sum_sq = (sum(r))^2;  % (1^T r)^2
+corr_matrix = corr(F);
+disp('Correlation Matrix of Factors:');
+disp(corr_matrix);
+
+%% setting up the optimization problem 
 
 % Hessian matrix
 I = eye(T);
@@ -58,6 +60,3 @@ uP = r - F * w_opt;  % Residuals
 
 w_opt
 
-corr_matrix = corr(F);
-disp('Correlation Matrix of Factors:');
-disp(corr_matrix);
