@@ -5,9 +5,7 @@
 xlsx_daily_data = 'daily_data.xlsx';
 daily_data = readtable(xlsx_daily_data); 
 
-% daily indices
-xlsx_daily_indices = 'daily_indices.xlsx';
-daily_indices = readtable(xlsx_daily_indices);
+%dail
 
 % Fama and French factors
 xlsx_daily_fama5_factors = 'daily_fama5_factors.xlsx';
@@ -24,9 +22,8 @@ r = daily_data.Dret(1:n);
 
 % Remove dates and combine in a single matrix
 Fama5 = daily_fama5_factors{1:n, 2:end};  % Fama-French 5-factors
-Q5 = daily_q5_factors{1:n, 2:end}; % Q5-factors
-F = daily_indices{1:n, 2:end};
-%F = [Fama5, Q5];
+Q5 = daily_q5_factors{1:n, 2:end};   % Q5-factors
+F = [Fama5, Q5];
 
 % Ensure returns align 
 T = length(r);  % Number of time periods
