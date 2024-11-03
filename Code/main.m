@@ -21,7 +21,8 @@ years = ["Year 1", "Year 2", "Year 3"];
 results_table = table;        % Non-normalized weights
 results_table_norm = table;    % Normalized weights
 
-%%
+
+%% set up the problem 
 for i = 1:length(time_frames)
     % Set n for the current iteration
     n = time_frames(i);
@@ -40,11 +41,13 @@ for i = 1:length(time_frames)
     T = length(r);  % Number of time periods
     m = size(F, 2);  % Number of factors
 
+
     %% Problem constraints
     Aeq = ones(1, m);  % Equality constraint: sum(w) = 1
     beq = 1;
     A = -eye(m);  % Inequality constraints: w >= 0 
     b = zeros(m, 1);
+
 
     %% Optimization using quadprog
     ones_T = ones(T, 1);
@@ -80,6 +83,7 @@ for i = 1:length(time_frames)
     % Solving with quadprog with the normalized Q and f
     [w_opt_quadprog_norm, ~] = quadprog(Q_norm, f_norm, [], [], Aeq, beq, lb, ub, [], options_quadprog);
 
+
     %% Optimization using fmincon
     % Initial guess for weights
     w0 = ones(m, 1) / m;
@@ -90,6 +94,7 @@ for i = 1:length(time_frames)
 
     % Solving with fmincon with the normalized values
     [w_opt_fmincon_norm, ~] = fmincon(@objective_norm, w0, [], [], Aeq, beq, lb, ub, [], options_fmincon);
+
 
     %% Store the Results in Separate Tables
     % Create a temporary table for non-normalized weights for the current year
@@ -103,6 +108,7 @@ for i = 1:length(time_frames)
                             'VariableNames', {['Quadprog_Norm_', char(years(i))], ['Fmincon_Norm_', char(years(i))]});
     % Append to the normalized results table
     results_table_norm = [results_table_norm, temp_table_norm];
+
 
     %% Calculate and Display Additional Metrics
     % Non-normalized
@@ -139,7 +145,6 @@ disp(results_table);
 
 disp('Optimal Weights for each year (Normalized):');
 disp(results_table_norm);
-
 
 
 %% Plotting Weights by Year and Optimization Method (Grouped by quadprog and fmincon)
@@ -195,18 +200,4 @@ for i = 1:3
 
     % Save figure
     saveas(gcf, ['Year_', num2str(i), '_Normalized.png']);
-end
-
-
-
-%% Objective Function Definition
-function y = objective(x)
-    global Q f c
-    y = 0.5 * x' * Q * x + f' * x + c; 
-end
-
-%% Objective Normalized Function Definition
-function y = objective_norm(x)
-    global Q_norm f_norm c_norm
-    y = 0.5 * x' * Q_norm * x + f_norm' * x + c_norm; 
 end
