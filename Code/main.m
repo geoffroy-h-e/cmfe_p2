@@ -1,53 +1,53 @@
 %% Load the data
+
+% load global for the objective function 
 global Q f c Q_norm f_norm c_norm
-% Daily returns 
+
+% load daily returns 
 xlsx_daily_data = 'daily_data.xlsx';
 daily_data = readtable(xlsx_daily_data, 'Range', 'A1:Z1395');
 
 opts = detectImportOptions(xlsx_daily_data);
 daily_data = readtable(xlsx_daily_data, opts);
-disp(height(daily_data));  % Check if it reads 1395 rows
 
-% daily indices
+% load daily indices and calculate log returns 
 xlsx_daily_indices = 'daily_indices.xlsx';
 daily_indices = readtable(xlsx_daily_indices);
 log_daily_indices = log(daily_indices{1:end, 2:end} + 1);
 
-% Time frames to iterate over (1 year, 2 years, 3 years)
+% create time frames to iterate over (1 year, 2 years, 3 years)
 time_frames = [365, 730, 1095];
 years = ["Year 1", "Year 2", "Year 3"];
 
-% Initialize tables to store results
+% create tables to store results
 results_table = table;        % Non-normalized weights
 results_table_norm = table;    % Normalized weights
 
+%% Optimization set-up
 
-%% set up the problem 
-for i = 1:length(time_frames)
-    % Set n for the current iteration
+for i = 1:length(time_frames);
+    % set n for the current iteration
     n = time_frames(i);
 
-    % Select the data for the current time frame
+    % select the data for the current time frame
     dates = daily_data.Caldt(1:n);
     r = daily_data.Dret(1:n);
     r = log(r + 1);
     r_norm = (r - mean(r)) ./ std(r);
 
-    % Remove dates and combine in a single matrix
+    % remove dates and combine in a single matrix
     F = log_daily_indices(1:n, 1:end);
     F_norm = (F - mean(F)) ./ std(F);
 
-    % Ensure returns align 
+    % ensure returns align 
     T = length(r);  % Number of time periods
     m = size(F, 2);  % Number of factors
 
-
     %% Problem constraints
-    Aeq = ones(1, m);  % Equality constraint: sum(w) = 1
+    Aeq = ones(1, m);  % equality constraint: sum(w) = 1
     beq = 1;
-    A = -eye(m);  % Inequality constraints: w >= 0 
+    A = -eye(m);  % inequality constraints: w >= 0 
     b = zeros(m, 1);
-
 
     %% Optimization using quadprog
     ones_T = ones(T, 1);
@@ -64,7 +64,7 @@ for i = 1:length(time_frames)
     f = -(2 / T) * (F' * r) + (2 / T^2) * (ones_T' * r) * (F' * ones_T);
 
     % Linear term with normalized values (f_norm)
-    f_norm = -(2 / T) * (F_norm' * r) + (2 / T^2) * (ones_T' * r) * (F_norm' * ones_T);
+    f_norm = -(2 / T) * (F_norm' * r_norm) + (2 / T^2) * (ones_T' * r_norm) * (F_norm' * ones_T);
 
     % Constant term (c)
     c = (1 / T) * (r' * r) - (1 / T^2) * (ones_T' * r)^2;
@@ -76,11 +76,11 @@ for i = 1:length(time_frames)
     lb = zeros(m, 1);
     ub = ones(m, 1);
 
-    % Solving with quadprog
+    % solving with quadprog
     options_quadprog = optimoptions('quadprog', 'Display', 'off');
     [w_opt_quadprog, ~] = quadprog(Q, f, [], [], Aeq, beq, lb, ub, [], options_quadprog);
 
-    % Solving with quadprog with the normalized Q and f
+    % solving with quadprog with the normalized Q and f
     [w_opt_quadprog_norm, ~] = quadprog(Q_norm, f_norm, [], [], Aeq, beq, lb, ub, [], options_quadprog);
 
 
@@ -97,7 +97,7 @@ for i = 1:length(time_frames)
 
 
     %% Store the Results in Separate Tables
-    % Create a temporary table for non-normalized weights for the current year
+    % create a table for non-normalized weights for the current year
     temp_table = table(w_opt_quadprog, w_opt_fmincon, ...
                        'VariableNames', {['Quadprog_', char(years(i))], ['Fmincon_', char(years(i))]});
     % Append to the non-normalized results table
@@ -108,7 +108,6 @@ for i = 1:length(time_frames)
                             'VariableNames', {['Quadprog_Norm_', char(years(i))], ['Fmincon_Norm_', char(years(i))]});
     % Append to the normalized results table
     results_table_norm = [results_table_norm, temp_table_norm];
-
 
     %% Calculate and Display Additional Metrics
     % Non-normalized
@@ -145,6 +144,7 @@ disp(results_table);
 
 disp('Optimal Weights for each year (Normalized):');
 disp(results_table_norm);
+
 
 
 %% Plotting Weights by Year and Optimization Method (Grouped by quadprog and fmincon)
